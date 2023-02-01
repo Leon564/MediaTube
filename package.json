@@ -1,0 +1,35 @@
+{
+  "name": "ytd",
+  "version": "1.0.0",
+  "main": "dist",
+  "types": "dist",
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "tsc -p ."
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "crypto": "^1.0.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "fs": "^0.0.1-security",
+    "got": "11.8.2",
+    "os": "^0.1.2",
+    "path": "^0.12.7",
+    "scrape-yt": "^1.4.8",
+    "youtube-mp3-downloader": "^0.7.11",
+    "ytdl-core": "^4.11.2"
+  },
+  "devDependencies": {
+    "@types/ffmpeg-installer__ffmpeg": "^1.0.0",
+    "@types/fluent-ffmpeg": "^2.1.20",
+    "@types/node": "^18.11.18",
+    "rimraf": "^4.1.2",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^4.9.4"
+  }
+}
