@@ -9,7 +9,8 @@
   "license": "MIT",
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "postinstall": "tsc -p ."
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
