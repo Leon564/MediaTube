@@ -6,15 +6,16 @@ import { Mp3Response, Mp3Options } from '../interfaces/types'
 import youtubeScrap from './youtubeScrap'
 
 class YoutubeMp3 {
-  constructor (private options: Mp3Options) {
-    if (!options.query) throw new Error('No query provided (can also be a url)')
-  }
+  constructor (private options: Mp3Options) {}
 
   static async get (options: Mp3Options) {
     return new YoutubeMp3(options)
   }
 
   async start (): Promise<Mp3Response> {
+    if (!this.options.query)
+      throw new Error('No query provided (can also be a url)')
+
     const {
       AudioQuality: quality = 'highestaudio',
       path,
@@ -43,7 +44,12 @@ class YoutubeMp3 {
         const fileBuffer = readFileSync(file)
         if (!path) rmSync(file)
 
-        return resolve({ fileBuffer, videoId, path: path ? file : undefined, title: video.title })
+        return resolve({
+          fileBuffer,
+          videoId,
+          path: path ? file : undefined,
+          title: video.title
+        })
       })
       YD.on('progress', (progress: IVideoTask) => {
         this.options.progress && this.options.progress(progress)
@@ -52,6 +58,21 @@ class YoutubeMp3 {
         }
       })
       YD.download(video.id, outputFile)
+    })
+  }
+
+  YoutubeMp3Downloader (): ytmp3 {
+    const {
+      AudioQuality: quality = 'highestaudio',
+      path
+    } = this.options
+
+    return new ytmp3({
+      outputPath: path || './', // Output file location (default: the home directory)
+      youtubeVideoQuality: quality, // Desired video quality (default: highestaudio)
+      queueParallelism: 1, // Download parallelism (default: 1)
+      progressTimeout: 2000, // Interval in ms for the progress reports (default: 1000)
+      allowWebm: false
     })
   }
 }

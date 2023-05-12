@@ -1,14 +1,18 @@
 import { Stream } from 'stream'
 import { IVideoTask } from 'youtube-mp3-downloader'
+import ytmp3 from 'youtube-mp3-downloader'
+
 
 type Options = {
   durationLimit?: number
   searchLimit?: number
-  query: string
+  query?: string
   path?: string
   filename?: string
   ffmpegPath?: string
 }
+
+export type Ytmp3 = ytmp3
 
 export type Mp3Options = Options & {
   AudioQuality?: 'highestaudio' | 'lowestaudio'
