@@ -1,26 +1,68 @@
-import { Mp3Options, Mp4Options } from '../interfaces/types'
-import scrape, { Video } from 'scrape-yt'
+import { Client, MusicClient, MusicSongCompact } from 'youtubei'
+import {
+  MusicSearchParams,
+  MusicSearchResult,
+  VideoSearchResult
+} from '../interfaces/types'
 
 class YoutubeScrap {
-  async search (options: Mp3Options | Mp4Options): Promise<Video[] | undefined> {
-    const { searchLimit, query = '' } = options
-    const scraping = await scrape.search(query, {
-      type: 'video',
-      limit: searchLimit || 10
-    })
-    return scraping
+  async searchMusic ({
+    query,
+    durationLimit
+  }: MusicSearchParams): Promise<MusicSearchResult | null> {
+    try {
+      const music = new MusicClient()
+      const data: any = await music.search(query) //filtrar duration < 10min
+      const results = data.find((obj: any) => obj.title === 'Songs') as any
+      const song = results.items.filter(
+        (song: any) => song.duration < durationLimit
+      )[0] as MusicSongCompact
+      //console.log(song)
+      const _thumbnail = song.thumbnails[song.thumbnails.length - 1].url
+      const thumbnail = this.changeImageResolution(_thumbnail, 500, 500)
+      return {
+        title: song.title,
+        artist: song.artists[0].name,
+        thumbnail: thumbnail,
+        id: song.id,
+        album: song.album.title,
+        url: `music.youtube.com/watch?v=${song.id}`
+      }
+    } catch (error) {
+      console.error(error)
+      return null
+    }
   }
 
-  async getVideoInfo (options: Mp3Options | Mp4Options): Promise<Video> {
-    const { query, searchLimit, durationLimit = 600, filename, path } = options
-    const scraping = await scrape.search(query!, {
-      type: 'video',
-      limit: searchLimit || 10
-    })
-    const video = scraping.filter(vid => vid.duration! < durationLimit)[0]
-    if (path && !filename) options.filename = video.title
-    if (!video) throw new Error('No video found')
-    return video
+  private changeImageResolution (
+    url: string,
+    width: number,
+    height: number
+  ): string {
+    const regex = /(=w)\d+(-h)\d+/
+    return url.replace(regex, `$1${width}$2${height}`)
+  }
+
+  async searchVideo (query: string): Promise<VideoSearchResult | null> {
+    try {
+      const youtube = new Client()
+      const resutl: any = await youtube.findOne(query)
+      return {
+        title: resutl.title,
+        url: `https://youtu.be/${resutl.id}`,
+        thumbnail: resutl.thumbnails[resutl.thumbnails.length - 1]
+          .url as string,
+        id: resutl.id as string,
+        duration: resutl.duration as string,
+        channel: resutl.channel.name as string,
+        description: resutl.description as string,
+        uploaded: resutl.uploadedAt as string,
+        views: resutl.viewCount as string
+      }
+    } catch (error) {
+      console.error(error)
+      return null
+    }
   }
 }
 

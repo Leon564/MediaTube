@@ -1,9 +1,19 @@
-import ytmp3, { IVideoTask } from 'youtube-mp3-downloader'
 import { tmpdir } from 'os'
 import { checkAndAddMP3, randomId } from '../tools/utils'
-import { rmSync, readFileSync, createWriteStream } from 'fs'
+import {
+  rmSync,
+  readFileSync,
+  createWriteStream,
+  unlinkSync,
+  renameSync
+} from 'fs'
 import { Mp3Response, Mp3Options } from '../interfaces/types'
 import youtubeScrap from './youtubeScrap'
+import Jimp from 'jimp'
+import Ffmpeg from 'fluent-ffmpeg'
+import readline from 'readline'
+import ytdl from 'ytdl-core'
+import sanitize from 'sanitize-filename'
 
 class YoutubeMp3 {
   constructor (private options: Mp3Options) {}
@@ -16,63 +26,166 @@ class YoutubeMp3 {
     if (!this.options.query)
       throw new Error('No query provided (can also be a url)')
 
-    const {
-      AudioQuality: quality = 'highestaudio',
-      path,
-      filename
-    } = this.options
-    const video = await youtubeScrap.getVideoInfo(this.options)
-    this.options.filename = checkAndAddMP3(filename)
-    let outputFile = filename || `${video.title}.mp3`
-    if (!path) outputFile = `${randomId()}.mp3`
-    const downloadOptions = {
-      outputPath: path || tmpdir(),
-      youtubeVideoQuality: quality,
-      queueParallelism: 1,
-      progressTimeout: 2000,
-      allowWebm: false
+    const song = await youtubeScrap.searchMusic({
+      query: this.options.query,
+      durationLimit: this.options.durationLimit || 600
+    })
+
+    if (!song) throw new Error('No song found')
+
+    let filename = this.options.filename
+      ? checkAndAddMP3(this.options.filename)
+      : `${tmpdir}/${sanitize(song?.title)}.mp3`
+
+    const video = ytdl(song.id, {
+      quality: 'highestaudio',
+      filter: 'audioonly'
+    })
+    const file = await this.download({
+      artist: song.artist,
+      audioBitRate: this.options.audioBitRate || '160',
+      path: filename!,
+      title: sanitize(song.title.replace(':', '-')),
+      video: video
+    })
+
+    if (this.options.cover) {
+      await this.addPictureToMP3({
+        mp3FilePath: file,
+        outputFilePath: filename!,
+        pictureFilePath: song.thumbnail
+      })
+    }
+    if (!this.options.filename) {
+      const buffer = readFileSync(file)
+      unlinkSync(file)
+      return {
+        file: buffer,
+        title: song.title,
+        artist: song.artist,
+        thumbnail: song.thumbnail
+      }
     }
 
-    return new Promise((resolve, reject) => {
-      const YD = new ytmp3(downloadOptions)
-      YD.on('error', (error: any) => {
-        return reject({ error })
-      })
-      YD.on('finished', (err: any, data: any) => {
-        if (err) reject(err)
-        const { videoId, file } = data
-        const fileBuffer = readFileSync(file)
-        if (!path) rmSync(file)
-
-        return resolve({
-          fileBuffer,
-          videoId,
-          path: path ? file : undefined,
-          title: video.title
-        })
-      })
-      YD.on('progress', (progress: IVideoTask) => {
-        this.options.progress && this.options.progress(progress)
-        if (progress.progress.percentage > 100) {
-          return reject({ error: 'Download failed' })
-        }
-      })
-      YD.download(video.id, outputFile)
-    })
+    return {
+      file,
+      title: song.title,
+      artist: song.artist,
+      thumbnail: song.thumbnail
+    }
   }
 
-  YoutubeMp3Downloader (): ytmp3 {
-    const {
-      AudioQuality: quality = 'highestaudio',
-      path
-    } = this.options
+  private async processImage (picture: string) {
+    const pictureImage = await Jimp.read(picture)
 
-    return new ytmp3({
-      outputPath: path || './', // Output file location (default: the home directory)
-      youtubeVideoQuality: quality, // Desired video quality (default: highestaudio)
-      queueParallelism: 1, // Download parallelism (default: 1)
-      progressTimeout: 2000, // Interval in ms for the progress reports (default: 1000)
-      allowWebm: false
+    const squareSize =
+      Math.min(pictureImage.getWidth(), pictureImage.getHeight()) / 1.35
+    const x = (pictureImage.getWidth() - squareSize) / 2
+    const y = (pictureImage.getHeight() - squareSize) / 2
+    pictureImage.crop(x, y, squareSize, squareSize)
+
+    const processedPicturePath = `${tmpdir}/thumb-${randomId()}.jpg`
+    await pictureImage.writeAsync(processedPicturePath)
+
+    return {
+      processedPicturePath,
+      delete: () => {
+        unlinkSync(processedPicturePath)
+      }
+    }
+  }
+
+  private async addPictureToMP3 ({
+    mp3FilePath,
+    pictureFilePath,
+    outputFilePath
+  }: {
+    mp3FilePath: string
+    pictureFilePath: string
+    outputFilePath: string
+  }) {
+    try {
+      let thumbnail = await this.processImage(pictureFilePath)
+      
+      let title = mp3FilePath.split('.mp3')[0].split('\\')[1]
+      let newFileName = mp3FilePath + Date.now() + '.bak'
+      renameSync(mp3FilePath, newFileName)
+      return new Promise((resolve, reject) => {
+        Ffmpeg()
+          .input(newFileName)
+          .input(thumbnail.processedPicturePath)
+          .outputOptions(
+            '-map',
+            '0',
+            '-map',
+            '1',
+            '-c',
+            'copy',
+            '-id3v2_version',
+            '3',
+            '-metadata',
+            'comment="Cover (front)"'
+          )
+          .output(outputFilePath)
+          .on('end', () => {
+            console.log('Picture added successfully!')
+            // Eliminar el archivo de imagen procesada
+            thumbnail.delete()
+            unlinkSync(newFileName)
+            resolve(mp3FilePath)
+          })
+          .on('error', err => {
+            console.error('Error adding picture:', err)
+            thumbnail.delete()
+            renameSync(newFileName, mp3FilePath)
+            reject(err)
+          })
+          .run()
+      })
+    } catch (error) {
+      console.error('Error processing picture:', error)
+    }
+  }
+
+  private async download ({
+    audioBitRate,
+    path,
+    title,
+    artist,
+    video
+  }: {
+    audioBitRate: string
+    artist: string
+    video: any
+    path: string
+    title: string
+  }): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const outputOptions = [
+        '-id3v2_version',
+        '4',
+        '-metadata',
+        `title=${title}`,
+        '-metadata',
+        `artist=${artist}`
+      ]
+
+      Ffmpeg(video)
+        .audioBitrate(audioBitRate)
+        .outputOptions(...outputOptions)
+        .toFormat('mp3')
+        .audioCodec('libmp3lame')
+        .save(path)
+        .on('progress', p => {
+          readline.cursorTo(process.stdout, 0)
+          process.stdout.write(
+            `${title} ${p.targetSize}kb downloaded, ${p.timemark}ms elapsed`
+          )
+        })
+        .on('end', () => {
+          console.log('\nDone')
+          resolve(path)
+        })
     })
   }
 }

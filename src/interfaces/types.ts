@@ -1,22 +1,19 @@
 import { Stream } from 'stream'
-import { IVideoTask } from 'youtube-mp3-downloader'
-import ytmp3 from 'youtube-mp3-downloader'
 
 
 type Options = {
   durationLimit?: number
   searchLimit?: number
+  audioBitRate?:string
   query?: string
-  path?: string
   filename?: string
   ffmpegPath?: string
+  cover? : Boolean
 }
 
-export type Ytmp3 = ytmp3
 
 export type Mp3Options = Options & {
   AudioQuality?: 'highestaudio' | 'lowestaudio'
-  progress?: (progress: IVideoTask) => void
 }
 
 export type Mp4Options = Options & {
@@ -27,15 +24,43 @@ export type Mp4Options = Options & {
 type DataResponse = {
   videoId?: string
   title?:string
-  path?: string
+  thumbnail?: string
+  artist?: string
+  path?: string | null
   error?: any
 }
 
 export type Mp3Response = DataResponse & {
-  fileBuffer: Buffer
+  file: Buffer | string
 }
 
 export type Mp4Response = DataResponse & {
   fileStream: Stream
   videoUrl: string
+}
+
+export type MusicSearchParams = {
+  query: string
+  durationLimit: number
+}
+
+export type MusicSearchResult = {
+  title: string
+  url: string
+  thumbnail: string
+  artist: string
+  id: string
+  album: string
+}
+
+export type VideoSearchResult = {
+  title: string
+  url: string
+  thumbnail: string
+  id: string
+  duration: string
+  views: string
+  uploaded: string
+  description: string
+  channel:string
 }
