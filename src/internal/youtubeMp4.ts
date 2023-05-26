@@ -13,7 +13,7 @@ class YoutubeMp4 {
   }
 
   static async get (options: Mp4Options) {
-    const video = await youtubeScrap.searchVideo(options.query!)
+    const video = await youtubeScrap.findOneVideo(options.query!)
     if (!video) throw new Error('No video found')
     return new YoutubeMp4(options, video)
   }

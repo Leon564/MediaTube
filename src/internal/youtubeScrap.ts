@@ -1,6 +1,6 @@
 import { Client, MusicClient, MusicSongCompact } from 'youtubei'
 import {
-  MusicSearchParams,
+  MusicSearchParams as ItemSearchParams,
   MusicSearchResult,
   VideoSearchResult
 } from '../interfaces/types'
@@ -9,15 +9,14 @@ class YoutubeScrap {
   async searchMusic ({
     query,
     durationLimit
-  }: MusicSearchParams): Promise<MusicSearchResult | null> {
+  }: ItemSearchParams): Promise<MusicSearchResult | null> {
     try {
       const music = new MusicClient()
       const data: any = await music.search(query) //filtrar duration < 10min
       const results = data.find((obj: any) => obj.title === 'Songs') as any
       const song = results.items.filter(
-        (song: any) => song.duration < durationLimit
+        (song: any) => song.duration <= durationLimit
       )[0] as MusicSongCompact
-      //console.log(song)
       const _thumbnail = song.thumbnails[song.thumbnails.length - 1].url
       const thumbnail = this.changeImageResolution(_thumbnail, 500, 500)
       return {
@@ -27,6 +26,37 @@ class YoutubeScrap {
         id: song.id,
         album: song.album.title,
         url: `music.youtube.com/watch?v=${song.id}`
+      }
+    } catch (error) {
+      return null
+    }
+  }
+
+  async searchVideo ({
+    query,
+    durationLimit
+  }: ItemSearchParams): Promise<VideoSearchResult | null> {
+    try {
+      const youtube = new Client()
+      const data: any = await youtube.search(query)
+      //const results = data.find((obj: any) => obj.title === 'Songs') as any
+      const filteredItem = data.items.filter(
+        (item: any) => item.duration <= durationLimit
+      )[0] as any
+
+      //console.log(filteredItem)
+
+      return {
+        title: filteredItem.title,
+        url: `https://youtu.be/${filteredItem.id}`,
+        thumbnail: filteredItem.thumbnails[filteredItem.thumbnails.length - 1]
+          .url as string,
+        id: filteredItem.id as string,
+        duration: filteredItem.duration as string,
+        channel: filteredItem.channel.name as string,
+        description: filteredItem.description as string,
+        uploaded: filteredItem.uploadedAt as string,
+        views: filteredItem.viewCount as string
       }
     } catch (error) {
       console.error(error)
@@ -43,7 +73,7 @@ class YoutubeScrap {
     return url.replace(regex, `$1${width}$2${height}`)
   }
 
-  async searchVideo (query: string): Promise<VideoSearchResult | null> {
+  async findOneVideo (query: string): Promise<VideoSearchResult | null> {
     try {
       const youtube = new Client()
       const resutl: any = await youtube.findOne(query)

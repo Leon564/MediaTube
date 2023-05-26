@@ -7,7 +7,12 @@ import {
   unlinkSync,
   renameSync
 } from 'fs'
-import { Mp3Response, Mp3Options } from '../interfaces/types'
+import {
+  Mp3Response,
+  Mp3Options,
+  MusicSearchResult,
+  VideoSearchResult
+} from '../interfaces/types'
 import youtubeScrap from './youtubeScrap'
 import Jimp from 'jimp'
 import Ffmpeg from 'fluent-ffmpeg'
@@ -26,26 +31,35 @@ class YoutubeMp3 {
     if (!this.options.query)
       throw new Error('No query provided (can also be a url)')
 
-    const song = await youtubeScrap.searchMusic({
+    let song: any = null
+
+    song = await youtubeScrap.searchMusic({
       query: this.options.query,
       durationLimit: this.options.durationLimit || 600
     })
+
+    if (!song) {
+      song = await youtubeScrap.searchVideo({
+        query: this.options.query,
+        durationLimit: this.options.durationLimit || 600
+      })
+    }
 
     if (!song) throw new Error('No song found')
 
     let filename = this.options.filename
       ? checkAndAddMP3(this.options.filename)
-      : `${tmpdir}/${sanitize(song?.title)}.mp3`
+      : `${tmpdir}/${sanitize(song?.title!)}.mp3`
 
-    const video = ytdl(song.id, {
+    const video = ytdl(song?.id!, {
       quality: 'highestaudio',
       filter: 'audioonly'
     })
     const file = await this.download({
-      artist: song.artist,
+      artist: song?.artist || 'Unknown',
       audioBitRate: this.options.audioBitRate || '160',
       path: filename!,
-      title: sanitize(song.title.replace(':', '-')),
+      title: sanitize(song?.title.replace(':', '-')),
       video: video
     })
 
@@ -106,7 +120,7 @@ class YoutubeMp3 {
   }) {
     try {
       let thumbnail = await this.processImage(pictureFilePath)
-      
+
       let title = mp3FilePath.split('.mp3')[0].split('\\')[1]
       let newFileName = mp3FilePath + Date.now() + '.bak'
       renameSync(mp3FilePath, newFileName)
@@ -128,7 +142,7 @@ class YoutubeMp3 {
           )
           .output(outputFilePath)
           .on('end', () => {
-            console.log('Picture added successfully!')
+            //console.log('Picture added successfully!')
             // Eliminar el archivo de imagen procesada
             thumbnail.delete()
             unlinkSync(newFileName)
@@ -161,6 +175,19 @@ class YoutubeMp3 {
     title: string
   }): Promise<string> {
     return new Promise((resolve, reject) => {
+      if (!artist) {
+        artist = 'Unknown'
+        if (title.indexOf('-') > -1) {
+          let temp = title.split('-')
+          if (temp.length >= 2) {
+            artist = temp[0].trim()
+            title = temp[1].trim()
+          }
+        } else {
+          title = title
+        }
+      }
+
       const outputOptions = [
         '-id3v2_version',
         '4',
@@ -183,7 +210,7 @@ class YoutubeMp3 {
           )
         })
         .on('end', () => {
-          console.log('\nDone')
+          //console.log('\nDone')
           resolve(path)
         })
     })
