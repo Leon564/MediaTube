@@ -1,4 +1,5 @@
 import { Client, MusicClient, MusicSongCompact } from 'youtubei'
+import {validateURL, getURLVideoID} from "ytdl-core"
 import {
   MusicSearchParams as ItemSearchParams,
   MusicSearchResult,
@@ -12,22 +13,24 @@ class YoutubeScrap {
   }: ItemSearchParams): Promise<MusicSearchResult | null> {
     try {
       const music = new MusicClient()
-      const data: any = await music.search(query) //filtrar duration < 10min
+      const data: any = await music.search(this.getVideoId(query)) //filtrar duration < 10min
       const results = data.find((obj: any) => obj.title === 'Songs') as any
-      const song = results.items.filter(
+      const song = await results.items.filter(
         (song: any) => song.duration <= durationLimit
       )[0] as MusicSongCompact
       const _thumbnail = song.thumbnails[song.thumbnails.length - 1].url
       const thumbnail = this.changeImageResolution(_thumbnail, 500, 500)
+      console.log(song)
       return {
         title: song.title,
         artist: song.artists[0].name,
         thumbnail: thumbnail,
         id: song.id,
-        album: song.album.title,
+        album: song?.album?.title || 'Unknown',
         url: `music.youtube.com/watch?v=${song.id}`
       }
     } catch (error) {
+      console.error(error)
       return null
     }
   }
@@ -38,7 +41,7 @@ class YoutubeScrap {
   }: ItemSearchParams): Promise<VideoSearchResult | null> {
     try {
       const youtube = new Client()
-      const data: any = await youtube.search(query)
+      const data: any = await youtube.search(this.getVideoId(query))
       //const results = data.find((obj: any) => obj.title === 'Songs') as any
       const filteredItem = data.items.filter(
         (item: any) => item.duration <= durationLimit
@@ -64,6 +67,13 @@ class YoutubeScrap {
     }
   }
 
+  private getVideoId (q: string): string {
+    if (validateURL(q)) {
+      return getURLVideoID(q)
+    }
+    return q
+  }
+
   private changeImageResolution (
     url: string,
     width: number,
@@ -76,7 +86,7 @@ class YoutubeScrap {
   async findOneVideo (query: string): Promise<VideoSearchResult | null> {
     try {
       const youtube = new Client()
-      const resutl: any = await youtube.findOne(query)
+      const resutl: any = await youtube.findOne(this.getVideoId(query))
       return {
         title: resutl.title,
         url: `https://youtu.be/${resutl.id}`,

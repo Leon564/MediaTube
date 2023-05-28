@@ -33,17 +33,21 @@ class YoutubeMp3 {
 
     let song: any = null
 
-    song = await youtubeScrap.searchMusic({
+    // song = await youtubeScrap.searchMusic({
+    //   query: this.options.query,
+    //   durationLimit: this.options.durationLimit || 600
+    // })
+
+    // if (!song) {
+    //   song = await youtubeScrap.searchVideo({
+    //     query: this.options.query,
+    //     durationLimit: this.options.durationLimit || 600
+    //   })
+    // }
+    song = await youtubeScrap.searchVideo({
       query: this.options.query,
       durationLimit: this.options.durationLimit || 600
     })
-
-    if (!song) {
-      song = await youtubeScrap.searchVideo({
-        query: this.options.query,
-        durationLimit: this.options.durationLimit || 600
-      })
-    }
 
     if (!song) throw new Error('No song found')
 
