@@ -1,17 +1,13 @@
 import { tmpdir } from 'os'
 import { checkAndAddMP3, randomId } from '../tools/utils'
 import {
-  rmSync,
   readFileSync,
-  createWriteStream,
   unlinkSync,
   renameSync
 } from 'fs'
 import {
   Mp3Response,
-  Mp3Options,
-  MusicSearchResult,
-  VideoSearchResult
+  Mp3Options
 } from '../interfaces/types'
 import youtubeScrap from './youtubeScrap'
 import Jimp from 'jimp'
@@ -33,24 +29,18 @@ class YoutubeMp3 {
 
     let song: any = null
 
-    // song = await youtubeScrap.searchMusic({
-    //   query: this.options.query,
-    //   durationLimit: this.options.durationLimit || 600
-    // })
-
-    // if (!song) {
-    //   song = await youtubeScrap.searchVideo({
-    //     query: this.options.query,
-    //     durationLimit: this.options.durationLimit || 600
-    //   })
-    // }
-    song = await youtubeScrap.searchVideo({
+    song = await youtubeScrap.searchMusic({
       query: this.options.query,
       durationLimit: this.options.durationLimit || 600
     })
 
-    if (!song) throw new Error('No song found')
-
+    if (!song) {
+      song = await youtubeScrap.searchVideo({
+        query: this.options.query,
+        durationLimit: this.options.durationLimit || 600
+      })
+    }
+    
     let filename = this.options.filename
       ? checkAndAddMP3(this.options.filename)
       : `${tmpdir}/${sanitize(song?.title!)}.mp3`
@@ -125,7 +115,6 @@ class YoutubeMp3 {
     try {
       let thumbnail = await this.processImage(pictureFilePath)
 
-      let title = mp3FilePath.split('.mp3')[0].split('\\')[1]
       let newFileName = mp3FilePath + Date.now() + '.bak'
       renameSync(mp3FilePath, newFileName)
       return new Promise((resolve, reject) => {
