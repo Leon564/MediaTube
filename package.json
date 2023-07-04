@@ -6,10 +6,12 @@
   "files": [
     "dist"
   ],
+  "repository": "https://github.com/Leon564/mediatube.git",
+  "author": "Leon564",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p .",
-    "postinstall": "tsc -p ."
+    "prepack": "npm run build",
+    "build": "tsc"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
