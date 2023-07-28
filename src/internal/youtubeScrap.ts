@@ -41,9 +41,12 @@ class YoutubeScrap {
   }: ItemSearchParams): Promise<VideoSearchResult | null> {
     try {
       const youtube = new Client();
-      const data: any = await youtube.search(this.getVideoId(query), {
-        type: "video",
-      });
+      const data: any =
+        this.getVideoId(query) !== query
+          ? await youtube.getVideo(this.getVideoId(query))
+          : await youtube.search(query, {
+              type: "video",
+            });
       //const results = data.find((obj: any) => obj.title === 'Songs') as any
       const filteredItem = data.items.filter(
         (item: any) => item.duration <= durationLimit
@@ -88,9 +91,12 @@ class YoutubeScrap {
   async findOneVideo(query: string): Promise<VideoSearchResult | null> {
     try {
       const youtube = new Client();
-      const resutl: any = await youtube.findOne(this.getVideoId(query), {
-        type: "video",
-      });
+      const resutl: any =
+        this.getVideoId(query) !== query
+          ? await youtube.getVideo(this.getVideoId(query))
+          : await youtube.findOne(this.getVideoId(query), {
+              type: "video",
+            });
       return {
         title: resutl.title,
         url: `https://youtu.be/${resutl.id}`,
