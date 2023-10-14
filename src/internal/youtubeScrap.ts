@@ -1,77 +1,18 @@
 import { Client, MusicClient, MusicSongCompact } from "youtubei";
-import { validateURL, getURLVideoID } from "ytdl-core";
+import ytdl, { validateURL, getURLVideoID } from "ytdl-core";
 import {
   MusicSearchParams as ItemSearchParams,
   MusicSearchResult,
   VideoSearchResult,
 } from "../interfaces/types";
+import { writeFileSync } from "fs";
 
-class YoutubeScrap {
-  async searchMusic({
-    query,
-    durationLimit,
-  }: ItemSearchParams): Promise<MusicSearchResult | null> {
-    try {
-      const music = new MusicClient();
-      const data: any = await music.search(this.getVideoId(query)); //filtrar duration < 10min
-      const results = data.find((obj: any) => obj.title === "Songs") as any;
-      const song = (await results.items.filter(
-        (song: any) => song.duration <= durationLimit
-      )[0]) as MusicSongCompact;
-      const _thumbnail = song.thumbnails[song.thumbnails.length - 1].url;
-      const thumbnail = this.changeImageResolution(_thumbnail, 500, 500);
-      console.log(song);
-      return {
-        title: song.title,
-        artist: song.artists[0].name,
-        thumbnail: thumbnail,
-        id: song.id,
-        album: song?.album?.title || "Unknown",
-        url: `music.youtube.com/watch?v=${song.id}`,
-      };
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
+export interface Options {
+  query: string;
+  limit?: number;
+}
 
-  async searchVideo({
-    query,
-    durationLimit,
-  }: ItemSearchParams): Promise<VideoSearchResult | null> {
-    try {
-      const youtube = new Client();
-      const data: any =
-        this.getVideoId(query) !== query
-          ? await youtube.getVideo(this.getVideoId(query))
-          : await youtube.search(query, {
-              type: "video",
-            });
-      //const results = data.find((obj: any) => obj.title === 'Songs') as any
-      const filteredItem = data.items.filter(
-        (item: any) => item.duration <= durationLimit
-      )[0] as any;
-
-      //console.log(filteredItem)
-
-      return {
-        title: filteredItem.title,
-        url: `https://youtu.be/${filteredItem.id}`,
-        thumbnail: filteredItem.thumbnails[filteredItem.thumbnails.length - 1]
-          .url as string,
-        id: filteredItem.id as string,
-        duration: filteredItem.duration as string,
-        channel: filteredItem.channel.name as string,
-        description: filteredItem.description as string,
-        uploaded: filteredItem.uploadedAt as string,
-        views: filteredItem.viewCount as string,
-      };
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
-
+class YoutubeScrap { 
   private getVideoId(q: string): string {
     if (validateURL(q)) {
       return getURLVideoID(q);
@@ -88,26 +29,41 @@ class YoutubeScrap {
     return url.replace(regex, `$1${width}$2${height}`);
   }
 
-  async findOneVideo(query: string): Promise<VideoSearchResult | null> {
+  async findOneVideo({
+    limit,
+    query,
+  }: {
+    limit: number;
+    query: string;
+  }): Promise<VideoSearchResult | null> {
     try {
       const youtube = new Client();
-      const resutl: any =
+      const result: any =
         this.getVideoId(query) !== query
           ? await youtube.getVideo(this.getVideoId(query))
           : await youtube.findOne(this.getVideoId(query), {
               type: "video",
             });
+
+      if (result.duration > limit) return null;
+
+      const thumbnail = result?.thumbnails[result.thumbnails.length - 1].url;
+
       return {
-        title: resutl.title,
-        url: `https://youtu.be/${resutl.id}`,
-        thumbnail: resutl.thumbnails[resutl.thumbnails.length - 1]
-          .url as string,
-        id: resutl.id as string,
-        duration: resutl.duration as string,
-        channel: resutl.channel.name as string,
-        description: resutl.description as string,
-        uploaded: resutl.uploadedAt as string,
-        views: resutl.viewCount as string,
+        title: result.title,
+        url: `https://youtu.be/${result.id}`,
+        thumbnail: thumbnail as string,
+        resizedThumbnail: this.changeImageResolution(
+          thumbnail,
+          500,
+          500
+        ) as string,
+        id: result.id as string,
+        duration: result.duration as string,
+        channel: result.channel.name as string,
+        description: result.description as string,
+        uploaded: result.uploadedAt as string,
+        views: result.viewCount as string,
       };
     } catch (error) {
       console.error(error);
