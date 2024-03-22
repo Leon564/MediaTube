@@ -9,7 +9,8 @@ import readline from "readline";
 import ytdl from "ytdl-core";
 import sanitize from "sanitize-filename";
 import validator from "validator";
-
+import { Readable } from "stream";
+import progress from "progress-stream";
 class YoutubeMp3 {
   constructor(private options: Mp3Options) {
     this.options.OfficialAudio = this.options.OfficialAudio !== false;
@@ -165,27 +166,12 @@ class YoutubeMp3 {
   }: {
     audioBitRate: string;
     artist: string;
-    video: any;
+    video: Readable;
     path: string;
     title: string;
     timeout: number;
-  }): Promise<string> {
+  }): Promise<string> {    
     return new Promise((resolve, reject) => {
-      let progressTimer: NodeJS.Timeout; // Especifica el tipo de la variable
-
-      const resetProgressDetection = () => {
-        if (progressTimer) {
-          clearTimeout(progressTimer);
-        }
-        progressTimer = setTimeout(() => {
-          // Si no se detecta progreso, cancelar la operación
-          reject("La descarga se ha cancelado debido a la falta de progreso.");
-        }, timeout);
-      };
-
-      // Inicializar el temporizador de progreso
-      resetProgressDetection();
-
       if (!artist) {
         artist = "Unknown";
         if (title.indexOf("-") > -1) {
@@ -208,27 +194,40 @@ class YoutubeMp3 {
         `artist=${artist}`,
       ];
 
-      Ffmpeg(video)
-        .audioBitrate(audioBitRate)
-        .outputOptions(...outputOptions)
-        .toFormat("mp3")
-        .audioCodec("libmp3lame")
-        .save(path)
-        .on("progress", (p) => {
-          resetProgressDetection();
+      video.on("error", (err) => {
+        reject(err);
+      });
+
+      video.on("response", (httpResponse) => {
+        const str = progress({
+          length: parseInt(httpResponse.headers["content-length"]),
+          time: timeout,
+        });
+
+        str.on("progress", function (progress) {
           readline.cursorTo(process.stdout, 0);
           process.stdout.write(
-            `${title} ${p.targetSize}kb downloaded, ${p.timemark}ms elapsed`
+            `${title} ${progress.percentage}% downloaded, ${progress.runtime}ms elapsed`
           );
-        })
-        .on("end", () => {
-          clearTimeout(progressTimer);
-          resolve(path);
-        })
-        .on("error", (err) => {
-          clearTimeout(progressTimer);
-          reject(err);
+          if (progress.percentage === 100) {
+            process.stdout.write("\n");
+          }
+          
         });
+
+        Ffmpeg({ source: video.pipe(str) })
+          .audioBitrate(audioBitRate)
+          .outputOptions(...outputOptions)
+          .toFormat("mp3")
+          .audioCodec("libmp3lame")
+          .save(path)
+          .on("end", () => {
+            resolve(path);
+          })
+          .on("error", (err) => {
+            reject(err);
+          });
+      });
     });
   }
 }
