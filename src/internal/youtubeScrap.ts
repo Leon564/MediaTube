@@ -12,7 +12,7 @@ export interface Options {
   limit?: number;
 }
 
-class YoutubeScrap { 
+class YoutubeScrap {
   private getVideoId(q: string): string {
     if (validateURL(q)) {
       return getURLVideoID(q);
@@ -43,6 +43,7 @@ class YoutubeScrap {
           ? await youtube.getVideo(this.getVideoId(query))
           : await youtube.findOne(this.getVideoId(query), {
               type: "video",
+              sortBy: "relevance",
             });
 
       if (result.duration > limit) return null;
