@@ -4,7 +4,7 @@ import {
   VideoSearchResult,
 } from "../interfaces/types";
 import youtubeScrap from "./youtubeScrap";
-import ytdl from "ytdl-core";
+import ytdl from "@distube/ytdl-core";
 import { validateFileName } from "../tools/utils";
 import { createWriteStream } from "fs";
 

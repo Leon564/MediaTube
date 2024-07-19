@@ -1,5 +1,5 @@
 import { Client, MusicClient, MusicSongCompact } from "youtubei";
-import ytdl, { validateURL, getURLVideoID } from "ytdl-core";
+import ytdl, { validateURL, getURLVideoID } from "@distube/ytdl-core";
 import {
   MusicSearchParams as ItemSearchParams,
   MusicSearchResult,

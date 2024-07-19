@@ -6,7 +6,7 @@ import youtubeScrap from "./youtubeScrap";
 import Jimp from "jimp";
 import Ffmpeg from "fluent-ffmpeg";
 import readline from "readline";
-import ytdl from "ytdl-core";
+import ytdl from "@distube/ytdl-core";
 import sanitize from "sanitize-filename";
 import validator from "validator";
 import { Readable } from "stream";
@@ -170,7 +170,7 @@ class YoutubeMp3 {
     path: string;
     title: string;
     timeout: number;
-  }): Promise<string> {    
+  }): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!artist) {
         artist = "Unknown";
@@ -212,7 +212,6 @@ class YoutubeMp3 {
           if (progress.percentage === 100) {
             process.stdout.write("\n");
           }
-          
         });
 
         Ffmpeg({ source: video.pipe(str) })
