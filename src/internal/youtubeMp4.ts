@@ -30,10 +30,11 @@ class YoutubeMp4 {
     const video = ytdl(this.VideoInfo?.id!, {
       quality: "highest",
       filter: "audioandvideo",
+      agent: this.options.agent,
     });
 
     let path = "";
-    
+
     if (this.options.path) {
       path = `${this.options.path}/${validateFileName(
         this.VideoInfo?.title!
@@ -47,7 +48,7 @@ class YoutubeMp4 {
       videoUrl: this.VideoInfo?.url!,
       title: this.VideoInfo?.title!,
       thumbnail: this.VideoInfo?.thumbnail!,
-      path: path === '' ? null : path
+      path: path === "" ? null : path,
     };
   }
 

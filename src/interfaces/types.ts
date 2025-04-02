@@ -1,3 +1,4 @@
+import ytdl from "@distube/ytdl-core";
 import { Stream } from "stream";
 
 type Options = {
@@ -9,6 +10,7 @@ type Options = {
   ffmpegPath?: string;
   cover?: Boolean;
   timeout?: number;
+  agent?: ytdl.Agent;
 };
 
 export type Mp3Options = Options & {

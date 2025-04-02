@@ -44,6 +44,7 @@ class YoutubeMp3 {
     const video = ytdl(song?.id!, {
       quality: "highestaudio",
       filter: "audioonly",
+      agent: this.options.agent,
     });
 
     const chanel = (song?.channel || "Unknown")
