@@ -41,10 +41,11 @@ class YoutubeMp3 {
       ? `${this.options.path}/${sanitize(song?.title!)}.mp3`
       : `${tmpdir}/${sanitize(song?.title!)}.mp3`;
 
+      
     const video = ytdl(song?.id!, {
       quality: "highestaudio",
       filter: "audioonly",
-      agent: this.options.agent,
+      agent: ytdl.createAgent(this.options?.cookies || []),
     });
 
     const chanel = (song?.channel || "Unknown")

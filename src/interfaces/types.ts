@@ -10,7 +10,8 @@ type Options = {
   ffmpegPath?: string;
   cover?: Boolean;
   timeout?: number;
-  agent?: ytdl.Agent;
+  //custom cookies
+  cookies?: ytdl.Cookie[];
 };
 
 export type Mp3Options = Options & {

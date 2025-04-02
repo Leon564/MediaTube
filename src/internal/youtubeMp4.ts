@@ -30,7 +30,7 @@ class YoutubeMp4 {
     const video = ytdl(this.VideoInfo?.id!, {
       quality: "highest",
       filter: "audioandvideo",
-      agent: this.options.agent,
+      agent: ytdl.createAgent(this.options?.cookies || []),
     });
 
     let path = "";
