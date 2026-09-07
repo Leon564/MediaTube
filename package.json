@@ -14,7 +14,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@distube/ytdl-core": "github:Leon564/ytdl-core-stuff",
+    "@distube/ytdl-core": "github:Leon564/ytdl-core",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@types/validator": "^13.12.0",
     "crypto": "^1.0.1",
