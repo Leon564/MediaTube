@@ -43,8 +43,9 @@ class YoutubeMp3 {
 
       
     const video = ytdl(song?.id!, {
-      quality: "highestaudio",
+      quality: "highest",
       //filter: "audioonly",
+      filter: (format: any) => format.hasVideo && format.hasAudio && (format.container === 'mp4' || !format.container),
       agent: ytdl.createAgent(this.options?.cookies || []),
     });
 
